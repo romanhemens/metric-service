@@ -12,12 +12,16 @@ class Validator {
         if (!Array.isArray(metrics)) {
             throw new Error('Metriken sind kein Array');
         }
+        //fehlt wenn kein array
+        
         // Überprüfen, ob Token und Value mit übergeben wurden und wenn ja, dann ihre Validität überprüfen
-        if (!metrics.token || !metrics.value) {
-            throw new Error('Fehlender Token oder Value');
-        } else{
-            return this.validateTokenAndValue(metrics.token, metrics.value);  
-        }
+        metrics.forEach(metric => {
+            if (!metric.landscape_token || !metric.token_secret) {
+                throw new Error('Fehlender Token oder Secret');
+            //  else {
+            //     this.validateTokenAndValue(metric.landscape_token, metric.token_secret);  
+            }
+        });
     }
 
     async validateTokenAndValue(token, value) {

@@ -7,6 +7,7 @@ const MetricsHandler = require('./metricHandler');
 const WebSocketManager = require('./websocketManager');
 const Validator = require('./validator');
 
+
 // Erstellen einer Express-Anwendung
 const app = express();
 
@@ -42,7 +43,7 @@ app.post('/metrics/v1/metrics', async (req, res) => {
         await Validator.validateMetrics(req.body);
 
         // Verarbeiten der Metriken und Senden an den WebSocketManager
-        metricsHandler.processMetrics(req.body)
+        await metricsHandler.processMetrics(req.body)
             .then(() => {
                 // Übertragen der Metriken an verbundene WebSocket-Clients
                 wsManager.broadcastMetrics(req.body);

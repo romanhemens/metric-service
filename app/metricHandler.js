@@ -27,7 +27,8 @@ class MetricsHandler {
       const points = metrics.map(metric => {
         const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes
           .timestamp(metric.timestamp)      // Festlegen des Zeitstempels
-          .tag('host', metric.host)          // Hinzufügen eines Tags (z.B. Host-Name)
+          .tag('landscape_token', metric.landscape_token)  // Hinzufügen der Tags damit ich die Metriken weiterhin einer Visualisierung zuordnen kann
+          .tag('token_secret', metric.token_secret)
           .floatField('value', metric.value); // Hinzufügen des Messwertes
         return point;
       });
