@@ -5,6 +5,8 @@ services:
     build: .
     ports:
       - "3000:3000"
+    networks:
+      - explorviz
     depends_on: 
       - influxdb
 
@@ -15,7 +17,14 @@ services:
       - "8086:8086"
     volumes:
       - influxdb-data:/var/lib/influxdb
+    networks:
+      - explorviz
 
 
 volumes:
   influxdb-data:
+
+networks:
+  explorviz:
+    name: explorviz
+    external: true
