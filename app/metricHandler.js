@@ -26,7 +26,7 @@ class MetricsHandler {
       // Umwandeln der Metriken in InfluxDB 'Point'-Objekte
       const points = metrics.map(metric => {
         const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes
-          .timestamp(metric.timestamp)      // Festlegen des Zeitstempels
+          //.timestamp(metric.timestamp)      // Festlegen des Zeitstempels problematisch, da InfluxDB einen nach in Nanosekunden seit dem Unix-Epoch, welches umgewandelt werden müsste
           .tag('landscape_token', metric.landscape_token)  // Hinzufügen der Tags damit ich die Metriken weiterhin einer Visualisierung zuordnen kann
           .tag('token_secret', metric.token_secret)
           .floatField('value', metric.value); // Hinzufügen des Messwertes
@@ -39,7 +39,7 @@ class MetricsHandler {
       await this.writeApi.flush();
     } catch (error) {
       //erstmal loggen, dann später auch eine Fehlerbehandlung
-        console.error('Fehler beim Schreiben von MEtriken: ', error);
+        console.error('Fehler beim Schreiben von Metriken: ', error);
         // weitere Fehlerbehandlung..
     }
   }
