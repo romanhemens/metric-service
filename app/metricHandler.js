@@ -1,5 +1,6 @@
 // Datei: metricHandler.js
-const { InfluxDB, Point } = require('@influxdata/influxdb-client');
+require('dotenv').config();
+const { InfluxDB, Point, flux } = require('@influxdata/influxdb-client');
 
 class MetricsHandler {
   /**
@@ -26,9 +27,10 @@ class MetricsHandler {
       // Umwandeln der Metriken in InfluxDB 'Point'-Objekte
       const points = metrics.map(metric => {
         const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes
+          .tag('unit', metric.unit)
           //.timestamp(metric.timestamp)      // Festlegen des Zeitstempels problematisch, da InfluxDB einen nach in Nanosekunden seit dem Unix-Epoch, welches umgewandelt werden müsste
-          .tag('landscape_token', metric.landscape_token)  // Hinzufügen der Tags damit ich die Metriken weiterhin einer Visualisierung zuordnen kann
-          .tag('token_secret', metric.token_secret)
+          .tag('landscape_token', metric.labels.landscape_token)  // Hinzufügen der Tags damit ich die Metriken weiterhin einer Visualisierung zuordnen kann
+          .tag('token_secret', metric.labels.token_secret)    // labsls wird eigentlich für Kontextinformationen verwendet.
           .floatField('value', metric.value); // Hinzufügen des Messwertes
         return point;
       });
@@ -50,6 +52,29 @@ class MetricsHandler {
     } catch (error) {
       console.error('Fehler beim Schließen des WriteApi: ', error);
     }
+  }
+
+
+  // Methode zum Abfragen von Metriken aus InfluxDB
+  async queryMetrics(landscapeToken, secret) {
+    const queryApi = this.client.getQueryApi(process.env.INFLUXDB_ORG);
+
+    const bucket = process.env.INFLUXDB_BUCKET;
+
+    // Erstellen Sie die Flux-Abfrage
+    const fluxQuery = flux`
+      from(bucket: "${bucket}")
+      |> range(start: -1h)
+      |> filter(fn: (r) => r.landscape_token == "${landscapeToken}" and r.token_secret == "${secret}")
+      |> yield(name: "filtered_last_10_sec")`;
+
+    // Ergebnisse sammeln und zurückgeben
+    const results = [];
+    await queryApi.collectRows(fluxQuery, (row) => {
+        results.push(row);
+    });
+
+    return results;
   }
   
 }

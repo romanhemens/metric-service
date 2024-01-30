@@ -16,7 +16,7 @@ class Validator {
         
         // Überprüfen, ob Token und Value mit übergeben wurden und wenn ja, dann ihre Validität überprüfen
         metrics.forEach(metric => {
-            if (!metric.landscape_token || !metric.token_secret) {
+            if ((!metric.landscape_token || !metric.token_secret) && (!metric.labels.landscape_token || !metric.labels.landscape_token)) {
                 throw new Error('Fehlender Token oder Secret');
             //  else {
             //     this.validateTokenAndValue(metric.landscape_token, metric.token_secret);  

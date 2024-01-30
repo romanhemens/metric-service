@@ -4,7 +4,7 @@ services:
   metric-service:
     build: .
     ports:
-      - "3000:3000"
+      - "8085:8085"
     networks:
       - explorviz
     depends_on: 
