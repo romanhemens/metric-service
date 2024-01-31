@@ -2,12 +2,16 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const cors = require('cors');
 const MetricsHandler = require('./metricHandler');
 const Validator = require('./validator');
 
 
 // Erstellen einer Express-Anwendung
 const app = express();
+
+// Aktivieren von CORS für alle Anfragen
+app.use(cors());
 
 // Middleware zum Parsen von JSON-Anfragen
 app.use(express.json());

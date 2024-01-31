@@ -66,6 +66,7 @@ class MetricsHandler {
       from(bucket: "${bucket}")
       |> range(start: -1h)
       |> filter(fn: (r) => r.landscape_token == "${landscapeToken}" and r.token_secret == "${secret}")
+      |> keep(columns: ["_measurement", "_time", "_value", "unit", "landscape_token"])
       |> yield(name: "filtered_last_10_sec")`;
 
     // Ergebnisse sammeln und zurückgeben
