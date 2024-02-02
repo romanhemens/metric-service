@@ -1,37 +1,60 @@
-//const { InfluxDB } = require('@influxdata/influxdb-client');
-
 // Definition der Validator-Klasse
 class Validator {
     // Statische Methode zur Validierung der empfangenen Metriken
     static validateMetrics(metrics) {
-        // Überprüfen, ob die Metriken nicht vorhanden oder ein leeres Objekt sind
-        if (!metrics || Object.keys(metrics).length === 0) {
-            throw new Error('Leere Metriken empfangen');
+        if (!metrics || !metrics.resourceMetrics) {
+            throw new Error('Ungültige Metrikdaten: Keine resourceMetrics gefunden');
         }
-        // Überprüfen, ob die Metriken ein Array sind
-        if (!Array.isArray(metrics)) {
-            throw new Error('Metriken sind kein Array');
-        }
-        //fehlt wenn kein array
-        
-        // Überprüfen, ob Token und Value mit übergeben wurden und wenn ja, dann ihre Validität überprüfen
-        metrics.forEach(metric => {
-            if ((!metric.landscape_token || !metric.token_secret) && (!metric.labels.landscape_token || !metric.labels.landscape_token)) {
-                throw new Error('Fehlender Token oder Secret');
-            //  else {
-            //     this.validateTokenAndValue(metric.landscape_token, metric.token_secret);  
+
+        metrics.resourceMetrics.forEach((resourceMetric) => {
+            if (!resourceMetric.resource || !resourceMetric.resource.attributes) {
+                throw new Error('Ungültige Ressource: Keine Attribute gefunden');
             }
+
+            const serviceNameAttribute = resourceMetric.resource.attributes.find(attr => attr.key === 'service.name');
+            if (!serviceNameAttribute || !serviceNameAttribute.value || !serviceNameAttribute.value.stringValue) {
+                throw new Error('Ungültiger Service-Name: Nicht vorhanden oder leer');
+            }
+
+
+            resourceMetric.scopeMetrics.forEach((scopeMetric) => {
+                scopeMetric.metrics.forEach((metric) => {
+                    if (!metric.name || !metric.description) {
+                        throw new Error('Ungültige Metrik: Name oder Beschreibung fehlt');
+                    }
+
+                    if (!metric.unit) {
+                        throw new Error ('Invalid metric: Unit is missing');
+                    }
+
+                    if (!metric.sum && !metric.gauge && !metric.histogram && !metric.summary) {
+                        throw new Error("Invalid metric: Data is missing or is unknown");
+                    } else{
+                        let validMetricTypes = ['sum', 'gauge', 'histogram', 'summary'];
+                        validMetricTypes.forEach(type => {
+                            if (metric[type] && metric[type].dataPoints) {
+                                metric[type].dataPoints.forEach(dataPoint => {
+                                    const requiredKeys = ['landscape_token', 'token_secret'];
+                                    const areRequiredKeysPresent = this.checkRequiredKeys(dataPoint.attributes, requiredKeys);
+
+                                    if (!areRequiredKeysPresent) {
+                                        throw new Error("Invalid metric: Required keys are missing");
+                                    }
+                                    // Advanced Kafka logic to validate keys
+                                });
+                            }
+                        });
+                    }
+                });
+            });
         });
     }
 
-    async validateTokenAndValue(token, value) {
-        // Implementieren der Logik, um in InfluxDB oder in Datenbank von ExplorViz zu überprüfen,
-        // ob der Token und der Value valide sind
-        // Beispiel: return await this.influxDB.query('...');
-
-        return true;
+    static checkRequiredKeys(attributes, requiredKeys) {
+        return requiredKeys.every(key => 
+          attributes.some(attr => attr.key === key)
+        );
     }
 }
 
-// Exportieren der Validator-Klasse für die Verwendung in anderen Dateien
 module.exports = Validator;
