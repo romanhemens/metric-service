@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const protobuf = require('protobufjs');
+const util = require('util');
 const MetricsHandler = require('./metricHandler');
 const Validator = require('./validator');
 
@@ -13,13 +15,17 @@ const app = express();
 // Aktivieren von CORS für alle Anfragen
 app.use(cors());
 
-// Middleware zum Parsen von JSON-Anfragen
-app.use(express.json());
+// Middleware zum Parsen von Protobuf-Anfragen
+app.use(express.raw({type: 'application/x-protobuf' }));
 
 app.use((req, res, next) => {
-    console.log("Rohdaten der Anfrage:", req.body);
+    console.log("Rohdaten der Anfrage: ", req.body);
     next();
-});
+})
+
+// Laden des OpenTelemetry Protobuf-Schemas
+const root = protobuf.loadSync("./opentelemetry/proto/collector/metrics/v1/metrics_service.proto");
+const MetricServiceRequest = root.lookupType("opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest");
 
 
 // Erstellen eines HTTP-Servers basierend auf der Express-App
@@ -39,14 +45,22 @@ const metricsHandler = new MetricsHandler(influxDBConfig.url, influxDBConfig.tok
 
 // Definieren einer Route zum Empfangen von Metrik-Daten
 app.post('/v1/metrics', async (req, res) => {
-    console.log("Empfangene Metriken: ", req.body);
+    // console.log("Empfangene Metriken: ", req.body);
 
     try {
-        // Validieren der empfangenen Metriken
-        await Validator.validateMetrics(req.body);
 
-        // Verarbeiten der Metriken und Senden an den WebSocketManager
-        await metricsHandler.processMetrics(req.body)
+        //Dekodieren der Protobuf-Nachricht
+        const decodedMessage = MetricServiceRequest.decode(new Uint8Array(req.body));
+        const metrics = MetricServiceRequest.toObject(decodedMessage);
+        
+        console.log("Empfangene Metriken: ", util.inspect(metrics, {showHidden: false, depth: null, colors: true}));
+        // console.log("Empfangene Metriken: ", metrics);
+
+        await Validator.validateMetrics(metrics);
+        
+
+        // Verarbeiten der Metriken
+        await metricsHandler.processMetrics(metrics)
             .then(() => {
 
                 // Senden einer Erfolgsantwort an den Client
@@ -59,10 +73,10 @@ app.post('/v1/metrics', async (req, res) => {
                 res.status(500).send('Fehler bei der Verarbeitung der Metriken');
                 console.log('req.body');
             });
+    
     } catch (error) {
-        // Fehlerbehandlung für Validierungsfehler
-        console.error(error);
-        res.status(400).send(error.message);
+        console.error('Fehler bei der Verarbeitung der Protobuf-Nachricht', error);
+        res.status(400).send('Ungültige Protobuf-Nachricht');
     }
 });
 
