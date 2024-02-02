@@ -12,6 +12,18 @@ Initial Setup of InfluxDB
     After starting InfluxDB, open the InfluxDB web interface, usually accessible at http://localhost:8086.
     Follow the instructions to create an initial user, organization, and bucket.
 
+    For development purposes, so you do not have to change the .env that much:
+
+        - username = admin
+
+        - pwd = r?geK93T5>Y+iHh
+
+        - initial_organisation = ag-se-explorviz
+
+        - initial_bucket = development
+
+    But you still need to copy the access-token!!!
+
 Obtaining the Access Token
 
     After completing the setup, InfluxDB will create an access token. Copy this token.
