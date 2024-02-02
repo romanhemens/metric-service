@@ -16,6 +16,12 @@ app.use(cors());
 // Middleware zum Parsen von JSON-Anfragen
 app.use(express.json());
 
+app.use((req, res, next) => {
+    console.log("Rohdaten der Anfrage:", req.body);
+    next();
+});
+
+
 // Erstellen eines HTTP-Servers basierend auf der Express-App
 const server = http.createServer(app);
 
@@ -32,7 +38,7 @@ const metricsHandler = new MetricsHandler(influxDBConfig.url, influxDBConfig.tok
 
 
 // Definieren einer Route zum Empfangen von Metrik-Daten
-app.post('/metrics/v1/metrics', async (req, res) => {
+app.post('/v1/metrics', async (req, res) => {
     console.log("Empfangene Metriken: ", req.body);
 
     try {
