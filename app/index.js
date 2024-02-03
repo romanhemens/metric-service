@@ -53,26 +53,25 @@ app.post('/v1/metrics', async (req, res) => {
         const decodedMessage = MetricServiceRequest.decode(new Uint8Array(req.body));
         const metrics = MetricServiceRequest.toObject(decodedMessage);
         
-        console.log("Empfangene Metriken: ", util.inspect(metrics, {showHidden: false, depth: null, colors: true}));
-        // console.log("Empfangene Metriken: ", metrics);
+        // console.log("Empfangene Metriken: ", util.inspect(metrics, {showHidden: false, depth: null, colors: true}));
+        console.log("Empfangene Metriken: ", metrics);
 
         await Validator.validateMetrics(metrics);
         
 
         // Verarbeiten der Metriken
-        await metricsHandler.processMetrics(metrics)
-            .then(() => {
-
-                // Senden einer Erfolgsantwort an den Client
-                res.status(200).send('Metriken empfangen und verarbeitet');
-                console.log('req.body');
-            })
-            .catch(error => {
-                // Fehlerbehandlung und Senden einer Fehlerantwort
+        for (const resourceMetric of metrics.resourceMetrics) {
+            try {
+                await metricsHandler.processMetrics(resourceMetric.scopeMetrics);
+                
+              } catch (error) {
                 console.error(error);
                 res.status(500).send('Fehler bei der Verarbeitung der Metriken');
-                console.log('req.body');
-            });
+                return; // Beenden der Ausführung, um mehrfache Antwortversuche zu verhindern
+              }
+            }
+        // Erfolgreich alle Metriken verarbeitet
+        res.status(200).send('Metriken empfangen und verarbeitet');
     
     } catch (error) {
         console.error('Fehler bei der Verarbeitung der Protobuf-Nachricht', error);

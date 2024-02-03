@@ -19,20 +19,48 @@ class MetricsHandler {
 
   /**
    * Verarbeitet eine Reihe von Metriken und speichert sie in InfluxDB.
-   * @param {Array} metrics Eine Array von Metrik-Objekten.
+   * @param {Array} metricsArray Eine Array von Metrik-Objekten.
    */
-  async processMetrics(metrics) {
+  async processMetrics(metricsArray) {
 
     try {
+
       // Umwandeln der Metriken in InfluxDB 'Point'-Objekte
-      const points = metrics.map(metric => {
-        const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes
-          .tag('unit', metric.unit)
-          //.timestamp(metric.timestamp)      // Festlegen des Zeitstempels problematisch, da InfluxDB einen nach in Nanosekunden seit dem Unix-Epoch, welches umgewandelt werden müsste
-          .tag('landscape_token', metric.labels.landscape_token)  // Hinzufügen der Tags damit ich die Metriken weiterhin einer Visualisierung zuordnen kann
-          .tag('token_secret', metric.labels.token_secret)    // labsls wird eigentlich für Kontextinformationen verwendet.
-          .floatField('value', metric.value); // Hinzufügen des Messwertes
-        return point;
+      const points = metricsArray.flatMap(scopeMetric => {
+        return scopeMetric.metrics.flatMap(metric => {
+          const dataPoints = MetricsHandler.getDataPoints(metric);
+
+          return dataPoints.map(dataPoint => {
+            // Entscheiden, welcher Wert basierend auf dem Metriktyp verwendet werden soll
+            // Entscheiden, welcher Wert basierend auf dem Metriktyp verwendet werden soll
+          let value;
+          if (dataPoint.sum !== undefined) {
+            value = dataPoint.sum; // Verwendung von sum, wenn vorhanden
+          } else if (dataPoint.count !== undefined) {
+            value = dataPoint.count; // Verwendung von count, wenn vorhanden
+          } else if (dataPoint.asDouble !== undefined) {
+            value = dataPoint.asDouble; // Verwendung von asDouble, wenn vorhanden
+          }
+
+          // Überprüfung, ob der Wert undefiniert ist
+          if (value === undefined) {
+            throw new Error(`Wert für Metrik '${metric.name}' ist undefined`);
+          }
+            const tokens = MetricsHandler.extractTokens(dataPoint.attributes);
+          
+            const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes (wird gespeichert als measurment)
+              .tag('description', metric.description)
+              .tag('unit', metric.unit) // Hinzufügen eines Tags der die Unit abspeichert
+              .tag('landscape_token', tokens.landscape_token)  
+              .tag('token_secret', tokens.token_secret)
+              .floatField('value', value);  
+              
+              //.timestamp(metric.timestamp)      // Festlegen des Zeitstempels problematisch, da InfluxDB einen nach in Nanosekunden seit dem Unix-Epoch, welches umgewandelt werden müsste
+
+
+            return point;
+          });
+        });
       });
 
       // Schreiben der Datenpunkte in die InfluxDB
@@ -53,6 +81,37 @@ class MetricsHandler {
       console.error('Fehler beim Schließen des WriteApi: ', error);
     }
   }
+
+  static extractTokens(attributes) {
+    let tokens = {
+      landscape_token: '',
+      token_secret: ''
+    };
+    
+    attributes.forEach(attr => {
+      if (attr.key === 'landscape_token') {
+        tokens.landscape_token = attr.value.stringValue;
+      } else if (attr.key === 'token_secret') {
+        tokens.token_secret = attr.value.stringValue;
+      }
+    });
+  
+    return tokens;
+  }
+
+  // Funktion zum Identifizieren des relevanten Metrik-Teils
+  static getDataPoints(metric) {
+    if (metric.histogram) {
+      return metric.histogram.dataPoints;
+    } else if (metric.gauge) {
+      return metric.gauge.dataPoints;
+    } else if (metric.sum) {
+      return metric.sum.dataPoints;
+    } else if (metric.summary) {
+      return metric.summary.dataPoints;
+    }
+  }
+
 
 
   // Methode zum Abfragen von Metriken aus InfluxDB
