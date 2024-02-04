@@ -84,12 +84,12 @@ app.post('/v1/metrics', async (req, res) => {
 app.get('/metrics', async (req, res) => {
     console.log(req.query);
 
-    const { landscapeToken, secret } = req.query;
+    const { landscapeToken } = req.query;
 
     try {
         console.log(req.body);
         // Abfrage der Metriken aus der Datenbank
-        const metrics = await metricsHandler.queryMetrics(landscapeToken, secret);
+        const metrics = await metricsHandler.queryMetrics(landscapeToken);
 
         // Senden der Metriken als Antwort
         res.json(metrics);

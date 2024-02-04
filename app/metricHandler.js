@@ -115,7 +115,7 @@ class MetricsHandler {
 
 
   // Methode zum Abfragen von Metriken aus InfluxDB
-  async queryMetrics(landscapeToken, secret) {
+  async queryMetrics(landscapeToken) {
     const queryApi = this.client.getQueryApi(process.env.INFLUXDB_ORG);
 
     const bucket = process.env.INFLUXDB_BUCKET;
@@ -123,8 +123,8 @@ class MetricsHandler {
     // Erstellen Sie die Flux-Abfrage
     const fluxQuery = flux`
       from(bucket: "${bucket}")
-      |> range(start: -1h)
-      |> filter(fn: (r) => r.landscape_token == "${landscapeToken}" and r.token_secret == "${secret}")
+      |> range(start: -1m)
+      |> filter(fn: (r) => r.landscape_token == "${landscapeToken}")
       |> keep(columns: ["_measurement", "_time", "_value", "unit", "landscape_token"])
       |> yield(name: "filtered_last_10_sec")`;
 
@@ -140,3 +140,6 @@ class MetricsHandler {
 }
 
 module.exports = MetricsHandler;
+
+
+//and r.token_secret == "${secret}"
