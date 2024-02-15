@@ -18,10 +18,10 @@ app.use(cors());
 // Middleware zum Parsen von Protobuf-Anfragen
 app.use(express.raw({type: 'application/x-protobuf' }));
 
-app.use((req, res, next) => {
-    console.log("Rohdaten der Anfrage: ", req.body);
-    next();
-})
+// app.use((req, res, next) => {
+//     console.log("Rohdaten der Anfrage: ", req.body);
+//     next();
+// })
 
 // Laden des OpenTelemetry Protobuf-Schemas
 const root = protobuf.loadSync("./opentelemetry/proto/collector/metrics/v1/metrics_service.proto");
@@ -84,12 +84,12 @@ app.post('/v1/metrics', async (req, res) => {
 app.get('/metrics', async (req, res) => {
     console.log(req.query);
 
-    const { landscapeToken } = req.query;
+    const { landscapeToken, timeStamp } = req.query;
 
     try {
         console.log(req.body);
         // Abfrage der Metriken aus der Datenbank
-        const metrics = await metricsHandler.queryMetrics(landscapeToken);
+        const metrics = await metricsHandler.queryMetrics(landscapeToken, timeStamp);
 
         // Senden der Metriken als Antwort
         res.json(metrics);

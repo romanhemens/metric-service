@@ -115,17 +115,22 @@ class MetricsHandler {
 
 
   // Methode zum Abfragen von Metriken aus InfluxDB
-  async queryMetrics(landscapeToken) {
+  async queryMetrics(landscapeToken, timeStamp) {
     const queryApi = this.client.getQueryApi(process.env.INFLUXDB_ORG);
 
     const bucket = process.env.INFLUXDB_BUCKET;
 
+    const timestamp = new Date(parseInt(timeStamp));
     // Erstellen Sie die Flux-Abfrage
+    console.log("LandscapeToken: ", landscapeToken);
+    console.log("Timestamp: ", timestamp);
+    console.log("Timestamp variable type: ", typeof timestamp);
     const fluxQuery = flux`
+      import "date"
       from(bucket: "${bucket}")
-      |> range(start: -1m)
+      |> range(start: date.sub(d: 1m, from: ${timestamp}), stop: ${timestamp})
       |> filter(fn: (r) => r.landscape_token == "${landscapeToken}")
-      |> keep(columns: ["_measurement", "_time", "_value", "unit", "landscape_token"])
+      |> keep(columns: ["_measurement", "_time", "_value", "unit", "landscape_token", "description"])
       |> yield(name: "filtered_last_10_sec")`;
 
     // Ergebnisse sammeln und zurückgeben
