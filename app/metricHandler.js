@@ -1,4 +1,5 @@
 // Datei: metricHandler.js
+const Long = require('long');
 require('dotenv').config();
 const { InfluxDB, Point, flux } = require('@influxdata/influxdb-client');
 
@@ -32,7 +33,6 @@ class MetricsHandler {
 
           return dataPoints.map(dataPoint => {
             // Entscheiden, welcher Wert basierend auf dem Metriktyp verwendet werden soll
-            // Entscheiden, welcher Wert basierend auf dem Metriktyp verwendet werden soll
           let value;
           if (dataPoint.sum !== undefined) {
             value = dataPoint.sum; // Verwendung von sum, wenn vorhanden
@@ -46,19 +46,21 @@ class MetricsHandler {
           if (value === undefined) {
             throw new Error(`Wert für Metrik '${metric.name}' ist undefined`);
           }
-            const tokens = MetricsHandler.extractTokens(dataPoint.attributes);
-          
-            const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes (wird gespeichert als measurment)
-              .tag('description', metric.description)
-              .tag('unit', metric.unit) // Hinzufügen eines Tags der die Unit abspeichert
-              .tag('landscape_token', tokens.landscape_token)  
-              .tag('token_secret', tokens.token_secret)
-              .floatField('value', value);  
-              
-              //.timestamp(metric.timestamp)      // Festlegen des Zeitstempels problematisch, da InfluxDB einen nach in Nanosekunden seit dem Unix-Epoch, welches umgewandelt werden müsste
+          const timeUnixNano = new Long(dataPoint.timeUnixNano.low, dataPoint.timeUnixNano.high, true);
+          const timestamp = timeUnixNano.toNumber();
+          const tokens = MetricsHandler.extractTokens(dataPoint.attributes);
 
-
-            return point;
+          console.log(timestamp);
+        
+          const point = new Point(metric.name) // Erstellen eines neuen Datenpunktes (wird gespeichert als measurment)
+            .tag('description', metric.description)
+            .tag('unit', metric.unit) // Hinzufügen eines Tags der die Unit abspeichert
+            .tag('landscape_token', tokens.landscape_token)  
+            .tag('token_secret', tokens.token_secret)
+            .timestamp(timestamp)
+            .floatField('value', value);  
+            
+          return point;
           });
         });
       });
@@ -131,7 +133,7 @@ class MetricsHandler {
       |> range(start: date.sub(d: 1m, from: ${timestamp}), stop: ${timestamp})
       |> filter(fn: (r) => r.landscape_token == "${landscapeToken}")
       |> keep(columns: ["_measurement", "_time", "_value", "unit", "landscape_token", "description"])
-      |> yield(name: "filtered_last_10_sec")`;
+      |> yield(name: "filtered_last_min")`;
 
     // Ergebnisse sammeln und zurückgeben
     const results = [];
