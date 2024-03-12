@@ -39,5 +39,5 @@ publish:
     - docker build -t metrics-service:$CI_COMMIT_REF_SLUG .
     - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
     - docker push metrics-service:$CI_COMMIT_REF_SLUG
-  only:
-    - main
+  # only:
+  #   - main
