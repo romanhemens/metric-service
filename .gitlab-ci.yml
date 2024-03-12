@@ -1,0 +1,43 @@
+default:
+  image: node:14
+  tags:
+    - exec-docker
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+stages:
+  - install
+  #- test
+  - publish
+
+install_dependencies:
+  stage: install
+  script:
+    - npm install
+  artifacts:
+    paths:
+      - node_modules/
+
+# test:
+#   stage: test
+#   script:
+#     - npm run test
+#   artifacts:
+#     when: always
+#     reports:
+#       junit: reports/test-results.xml
+#   coverage: '/All files[^|]*\|[^0-9]*([0-9]{1,3}\.[0-9]{1,2}) %/'
+
+publish:
+  stage: publish
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t metrics-service:$CI_COMMIT_REF_SLUG .
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+    - docker push metrics-service:$CI_COMMIT_REF_SLUG
+  only:
+    - main
