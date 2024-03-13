@@ -40,7 +40,7 @@ class Validator {
                                     if (!areRequiredKeysPresent) {
                                         throw new Error("Invalid metric: Required keys are missing");
                                     }
-                                    // Advanced Kafka logic to validate keys
+                                    // Advanced Kafka logic to validate keys that are created by frontend
                                 });
                             }
                         });
