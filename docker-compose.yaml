@@ -1,6 +1,7 @@
 version: '3'
 services:
 
+  # Metrics-Service
   metric-service:
     hostname: metric-service
     build: .
@@ -11,7 +12,7 @@ services:
     depends_on: 
       - influxdb
 
-
+  # Influx database
   influxdb:
     image: influxdb:latest
     ports:

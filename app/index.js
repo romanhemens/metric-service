@@ -1,120 +1,101 @@
-// Importieren der erforderlichen Module und Klassen
+// Import required modules and classes
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const protobuf = require('protobufjs');
-const util = require('util');
 const MetricsHandler = require('./metricHandler');
 const Validator = require('./validator');
 
-
-// Erstellen einer Express-Anwendung
+// Create an Express application
 const app = express();
 
-// Aktivieren von CORS für alle Anfragen
+// Enable CORS for all requests
 app.use(cors());
 
-// Middleware zum Parsen von Protobuf-Anfragen
-app.use(express.raw({type: 'application/x-protobuf' }));
+// Middleware for parsing Protobuf requests
+app.use(express.raw({type: 'application/x-protobuf'}));
 
-// app.use((req, res, next) => {
-//     console.log("Rohdaten der Anfrage: ", req.body);
-//     next();
-// })
-
-// Laden des OpenTelemetry Protobuf-Schemas
+// Load the OpenTelemetry Protobuf schema 
+// The schema is used for deserializing the incoming metrics
 const root = protobuf.loadSync("./opentelemetry/proto/collector/metrics/v1/metrics_service.proto");
 const MetricServiceRequest = root.lookupType("opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest");
 
-
-// Erstellen eines HTTP-Servers basierend auf der Express-App
+// Create an HTTP server based on the Express app
 const server = http.createServer(app);
 
-// Laden der Konfiguration aus der .env-Datei
+// Load the configuration from the .env file
 const influxDBConfig = {
     url: process.env.INFLUXDB_URL,
     token: process.env.INFLUXDB_TOKEN,
     org: process.env.INFLUXDB_ORG,
     bucket: process.env.INFLUXDB_BUCKET
-  };
+};
 
-// Erstellen des MetricsHandler-Objekts zur Verarbeitung von Metriken
+// Create the MetricsHandler object for processing metrics
 const metricsHandler = new MetricsHandler(influxDBConfig.url, influxDBConfig.token, influxDBConfig.org, influxDBConfig.bucket);
 
-
-// Definieren einer Route zum Empfangen von Metrik-Daten
+// Define a route for receiving metric data
 app.post('/v1/metrics', async (req, res) => {
-    // console.log("Empfangene Metriken: ", req.body);
 
     try {
-
-        //Dekodieren der Protobuf-Nachricht
+        // Decode the Protobuf message to a readable object
         const decodedMessage = MetricServiceRequest.decode(new Uint8Array(req.body));
         const metrics = MetricServiceRequest.toObject(decodedMessage);
-        
-        // console.log("Empfangene Metriken: ", util.inspect(metrics, {showHidden: false, depth: null, colors: true}));
-        console.log("Empfangene Metriken: ", metrics);
 
+        // Validate the metrics structure
         await Validator.validateMetrics(metrics);
-        
 
-        // Verarbeiten der Metriken
+        // Process the metrics
         for (const resourceMetric of metrics.resourceMetrics) {
             try {
                 await metricsHandler.processMetrics(resourceMetric.scopeMetrics);
-                
-              } catch (error) {
+            } catch (error) {
                 console.error(error);
-                res.status(500).send('Fehler bei der Verarbeitung der Metriken');
-                return; // Beenden der Ausführung, um mehrfache Antwortversuche zu verhindern
-              }
+                res.status(500).send('Error processing metrics');
+                return; // Stop execution to prevent multiple responses
             }
-        // Erfolgreich alle Metriken verarbeitet
-        res.status(200).send('Metriken empfangen und verarbeitet');
-    
+        }
+        res.status(200).send('Metrics received and processed');
     } catch (error) {
-        console.error('Fehler bei der Verarbeitung der Protobuf-Nachricht', error);
-        res.status(400).send('Ungültige Protobuf-Nachricht');
+        console.error('Error processing the Protobuf message', error);
+        res.status(400).send('Invalid Protobuf message');
     }
 });
 
-
-// Endpunkt zur Abfrage von Metriken
+// Endpoint for querying metrics
 app.get('/metrics', async (req, res) => {
     console.log(req.query);
 
     const { landscapeToken, timeStamp } = req.query;
 
     try {
-        console.log(req.body);
-        // Abfrage der Metriken aus der Datenbank
+        // Query metrics from the database
         const metrics = await metricsHandler.queryMetrics(landscapeToken, timeStamp);
 
-        // Senden der Metriken als Antwort
+        // Send the metrics as a response
         res.json(metrics);
     } catch (error) {
         console.error(error);
-        res.status(500).send('Fehler bei der Abfrage der Metriken');
+        res.status(500).send('Error querying metrics');
     }
 });
 
-
-// Starten des Servers auf Port 3000
+// Start the server on port 8085
 server.listen(8085, () => {
     console.log('Server is running on http://localhost:8085');
 });
 
-
+// Graceful shutdown on SIGINT
 process.on('SIGINT', async () => {
-    console.log('Server wird heruntergefahren...');
+    console.log('Shutting down server...');
 
-    // Hier schließen Sie Ressourcen wie Ihren MetricsHandler
+    // Close resources like your MetricsHandler here
     await metricsHandler.close();
 
-    // Schließen des Servers
+    // Close the server
     server.close(() => {
-        console.log('Server beendet.');
+        console.log('Server shutdown.');
         process.exit(0);
     });
 });
