@@ -1,5 +1,8 @@
 # Metrics Service
 
+# System requirements
+
+The user needs to have both Docker and Docker compose installed.
 
 # Set-Up of the InfluxDB
 
