@@ -1,0 +1,10 @@
+ [
+    "",
+    "1",
+    "2024-02-23T08:09:09.376509173Z",
+    "197.61171399999998",
+    "http.client.duration",
+    "Measures the duration of outbound HTTP requests.",
+    "0ad5c1cd-e2de-4404-9cc8-6da758d82010",
+    "ms"
+]

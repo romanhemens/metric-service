@@ -11,7 +11,7 @@ default:
 
 stages:
   - install
-  #- test
+  - test
   - deploy:images
 
 install_dependencies:
@@ -22,17 +22,10 @@ install_dependencies:
     paths:
       - node_modules/
 
-# test:
-#   stage: test
-#   variables:
-#     REDIS_HOST: redis
-#     REDIS_PORT: '6379'
-#   services:
-#     - name: redis:latest
-#   script:
-#     - npm run start &
-#     - sleep 10
-#     - npm run test:supertest
+test:
+  stage: test
+  script:
+    - npm test
 
 .deploy-to-dockerhub:
   stage: deploy:images

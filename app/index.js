@@ -1,3 +1,4 @@
+// index.js
 // Import required modules and classes
 require('dotenv').config();
 const express = require('express');
@@ -65,7 +66,6 @@ app.post('/v1/metrics', async (req, res) => {
 
 // Endpoint for querying metrics
 app.get('/metrics', async (req, res) => {
-    console.log(req.query);
 
     const { landscapeToken, timeStamp } = req.query;
 
@@ -82,9 +82,11 @@ app.get('/metrics', async (req, res) => {
 });
 
 // Start the server on port 8085
-server.listen(8085, () => {
-    console.log('Server is running on http://localhost:8085');
-});
+if (require.main === module) {
+    server.listen(8085, () => {
+        console.log('Server is running on http://localhost:8085');
+    });
+}
 
 // Graceful shutdown on SIGINT
 process.on('SIGINT', async () => {
@@ -99,3 +101,5 @@ process.on('SIGINT', async () => {
         process.exit(0);
     });
 });
+
+module.exports = app;
