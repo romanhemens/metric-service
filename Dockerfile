@@ -10,7 +10,7 @@ RUN npm install
 # loading all necessary files
 COPY app/ ./
 COPY opentelemetry/proto ./opentelemetry/proto
-COPY .env ./
+COPY .env-custom ./.env
 
 EXPOSE 8085
 

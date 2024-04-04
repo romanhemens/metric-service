@@ -15,25 +15,16 @@ Initial Setup of InfluxDB
     After starting InfluxDB, open the InfluxDB web interface, usually accessible at http://localhost:8086.
     Follow the instructions to create an initial user, organization, and bucket.
 
-    For development purposes, so you do not have to change the .env that much:
-
-        - username = admin
-
-        - pwd = r?geK93T5>Y+iHh
-
-        - initial_organisation = ag-se-explorviz
-
-        - initial_bucket = development
-
-    But you still need to copy the access-token!!!
+    Store your value for the organization and bucket in a file .env-custom, which is ignored by git. 
 
 Obtaining the Access Token
 
-    After completing the setup, InfluxDB will create an access token. Copy this token.
+    After completing the setup, InfluxDB will create an access token. Copy this token in your .env-custom. 
+    NOTE: This token is only visible once and cannot be obtained later!!
 
 Updating Configuration Files
 
-    Update the .env file of your metric-service with the InfluxDB setup details (URL, token, organization, bucket).
+    Update the .env-custom file of your metric-service with the InfluxDB setup details (URL, token, organization, bucket).
 
 Restarting the metric-service
 
@@ -43,8 +34,6 @@ Restarting the metric-service
 # Notes
 
 Ensure the Docker volume influxdb-data is correctly bound to /var/lib/influxdb2 in the InfluxDB container for persistent data storage.
-
-The .env file is as of now not accessable outside /app
 
 
 
